@@ -1,0 +1,14 @@
+# .gitignore for Nunjucks Blog App
+# Ignore node modules and build artifacts
+node_modules
+dist
+src/data/*.json
+src/data/*.db
+!src/data/*.orig.json
+
+# Ignore logs and zip files
+*.log
+*.zip
+
+# Ignore local configuration files
+*.local
