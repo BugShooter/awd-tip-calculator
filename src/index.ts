@@ -1,5 +1,5 @@
 import * as readline from "readline/promises"
-  // Your application logic goes here
+// Your application logic goes here
 
 
 // Input Collection
@@ -31,7 +31,7 @@ import * as readline from "readline/promises"
 
 class InputHandler {
     private rl: readline.Interface;
-    
+
     constructor() {
         this.rl = readline.createInterface({
             input: process.stdin,
@@ -53,7 +53,7 @@ class InputHandler {
             const splitBy = await this.rl.question("How many people will split the bill?")
             return {
                 split: true,
-                splitBy: splitBy
+                splitBy: Number(splitBy)
             }
         } else {
             return {
@@ -62,12 +62,16 @@ class InputHandler {
             }
         }
     }
+    public close() {
+        this.rl.close()
+    }
 }
 
 class TipCalculator {
     private checkAmount: number = 0;
     private tipPercentage: number = 0;
-    private tipSplit: boolean = false;
+    private tipAmount: number = 0;
+    private split: boolean = false;
     private splitBy: number = 0;
 
     constructor(
@@ -78,10 +82,26 @@ class TipCalculator {
     public async start() {
         this.checkAmount = Number(await this.inputHandler.getCheckAmount())
         this.tipPercentage = Number(await this.inputHandler.getPercentage())
-        const splitInfo = await this.inputHandler.getSplitInfo()
-        this.tipSplit = splitInfo.split
-        this.splitBy = Number(splitInfo.splitBy)
-        console.log(this.checkAmount, this.tipPercentage, this.tipSplit, this.splitBy)
+        const { split, splitBy } = await this.inputHandler.getSplitInfo()
+        this.split = split
+        this.splitBy = splitBy
+        this.tipAmount = this.calcTipAmount(this.checkAmount, this.tipPercentage)
+        // console.log(this.checkAmount, this.tipPercentage, this.split, this.splitBy)
+        this.output()
+        this.inputHandler.close()
+    }
+
+    private output() {
+        const message = `--- Tip Calculation Summary ---
+Check Amount: \$${this.checkAmount}
+Tip Percentage: ${this.tipPercentage.toFixed(2)}%
+Tip Amount: \$${this.tipAmount.toFixed(2)}
+Total Bill: \$${this.calcTotalBill(this.checkAmount, this.tipPercentage).toFixed(2)}
+Divide among people: ${this.split ? "yes" : "no"}
+Split between how many people: ${this.splitBy}
+Each person pays: \$${this.calcPerPerson(this.checkAmount, this.splitBy, this.tipPercentage).toFixed(2)}
+-----------------------------`
+        console.log(message)
     }
 
     calcTipAmount(amount: number, percentage: number) {
