@@ -1,8 +1,12 @@
+import * as readline from "readline/promises"
+  // Your application logic goes here
+
+
 // Input Collection
 //     The application should ask the user the following questions:
 //         “How high is the check? (e.g., 50.00)”
 //         “What percentage of tip will you give? (e.g., 15 for 15%)”
-//         “Should the bill be split among multiple people? (yes/no)”
+//         “Should the bill be split among multnpmiple people? (yes/no)”
 //             If the answer is “yes”, then ask: “How many people will split the bill?”
 // Class-Based Structure:
 //     You must use at least one class (e.g., TipCalculator, Bill, UserInputHandler) to encapsulate the logic and data related to the tip calculation.
@@ -24,13 +28,61 @@
 //     Instead of having a class directly create its dependencies (e.g., an InputReader class), pass them into the constructor.
 //     Example: If you have a TipCalculator class that relies on an InputHandler class to get user input, instead of TipCalculator creating an InputHandler internally, pass an instance of InputHandler to the TipCalculator’s constructor. This makes your code more modular and testable.
 
+
+class InputHandler {
+    private rl: readline.Interface;
+    
+    constructor() {
+        this.rl = readline.createInterface({
+            input: process.stdin,
+            output: process.stdout,
+        })
+    }
+
+    public async getCheckAmount() {
+        return this.rl.question("How high is the check? (e.g., 50.00)")
+    }
+
+    public async getPercentage() {
+        return this.rl.question("What percentage of tip will you give? (e.g., 15 for 15%)")
+    }
+
+    public async getSplitInfo() {
+        const answer = await this.rl.question("Should the bill be split among multiple people? (yes/no)")
+        if (answer === "yes") {
+            const splitBy = await this.rl.question("How many people will split the bill?")
+            return {
+                split: true,
+                splitBy: splitBy
+            }
+        } else {
+            return {
+                split: false,
+                splitBy: 0
+            }
+        }
+    }
+}
+
 class TipCalculator {
+    private checkAmount: number = 0;
+    private tipPercentage: number = 0;
+    private tipSplit: boolean = false;
+    private splitBy: number = 0;
+
     constructor(
-        private checkAmount: number,
-        private tipPercentage: number,
-        private tipSplit: boolean,
-        private splitBy: number
-    ) {}
+        private inputHandler: InputHandler,
+    ) {
+    }
+
+    public async start() {
+        this.checkAmount = Number(await this.inputHandler.getCheckAmount())
+        this.tipPercentage = Number(await this.inputHandler.getPercentage())
+        const splitInfo = await this.inputHandler.getSplitInfo()
+        this.tipSplit = splitInfo.split
+        this.splitBy = Number(splitInfo.splitBy)
+        console.log(this.checkAmount, this.tipPercentage, this.tipSplit, this.splitBy)
+    }
 
     calcTipAmount(amount: number, percentage: number) {
         return amount * (percentage / 100)
@@ -46,3 +98,7 @@ class TipCalculator {
         return totalAmount / numberOfPersons
     }
 }
+
+const inputHandler = new InputHandler();
+const calc = new TipCalculator(inputHandler);
+await calc.start();
