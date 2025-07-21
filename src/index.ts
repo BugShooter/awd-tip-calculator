@@ -1,3 +1,4 @@
+import { unwatchFile } from "fs";
 import * as readline from "readline/promises"
 // Your application logic goes here
 
@@ -28,6 +29,52 @@ import * as readline from "readline/promises"
 //     Instead of having a class directly create its dependencies (e.g., an InputReader class), pass them into the constructor.
 //     Example: If you have a TipCalculator class that relies on an InputHandler class to get user input, instead of TipCalculator creating an InputHandler internally, pass an instance of InputHandler to the TipCalculator’s constructor. This makes your code more modular and testable.
 
+function percentageValidator(userInput: string, min: number, max: number) {
+    const percentage = parseFloat(userInput)
+
+    let isValid = !Number.isNaN(percentage) && userInput === String(percentage)
+    if (!isValid) {
+        console.log(`Wrong percentage value "${userInput}"`)
+    }
+    if (isValid && percentage < 0) {
+        console.log(`Percentage value "${percentage}" can't be lower than zero`)
+        isValid = false;
+    }
+    if (isValid && min !== undefined && percentage < min) {
+        console.log(`Percentage value "${percentage}" can't be lower than ${min}`)
+        isValid = false;
+    }
+    if (isValid && max !== undefined && percentage > max) {
+        console.log(`Percentage value "${percentage}" can't be greater than ${max}`)
+        isValid = false;
+    }
+
+    return isValid
+}
+
+function repeatUserInputUntilValid(validator: (...validatorParams: any[]) => boolean, ...validatorParams: any[]) {
+    return function (
+        target: any,
+        propertyKey: string,
+        descriptor: PropertyDescriptor
+    ) {
+        const originalMethod = descriptor.value; // Store the original function
+
+        descriptor.value = async function (...args: any[]) {
+            let result = undefined
+            let isValid = false
+            do {
+                result = await originalMethod.apply(this, args); // Execute the original function
+                // validate a result
+                isValid = validator(result, ...validatorParams)
+            } while (!isValid)
+            return result
+        }
+
+        return descriptor; // Return the modified method
+    }
+}
+
 
 class InputHandler {
     private rl: readline.Interface;
@@ -43,6 +90,7 @@ class InputHandler {
         return this.rl.question("How high is the check? (e.g., 50.00)")
     }
 
+    @repeatUserInputUntilValid(percentageValidator, 0, 15)
     public async getPercentage() {
         return this.rl.question("What percentage of tip will you give? (e.g., 15 for 15%)")
     }
