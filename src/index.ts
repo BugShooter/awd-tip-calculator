@@ -1,7 +1,6 @@
-import { unwatchFile } from 'fs'
 import * as readline from 'readline/promises'
 
-function numberValidator(userInput: string, min: number, max: number) {
+function numberValidator(userInput: string, min?: number, max?: number) {
     const number = parseFloat(userInput)
 
     let isValid = !Number.isNaN(number) && userInput === String(number)
@@ -25,8 +24,8 @@ function numberValidator(userInput: string, min: number, max: number) {
 }
 
 function yesNoValidator(userInput: string) {
-    const validAnswers = ['yes', 'no']
-    const isValid = validAnswers.includes(userInput.trim())
+    const validAnswers = ['yes', 'no', 'y', 'n']
+    const isValid = validAnswers.includes(userInput.trim().toLowerCase())
 
     if (!isValid) {
         console.log(`Wrong input "${userInput}". Please type yes or no.`)
@@ -64,7 +63,7 @@ class InputHandler {
         })
     }
 
-    @repeatUserInputUntilValid(numberValidator, 0, 100000)
+    @repeatUserInputUntilValid(numberValidator, 0)
     public async getCheckAmount() {
         return this.rl.question('How high is the check? (e.g., 50.00)')
     }
@@ -79,14 +78,20 @@ class InputHandler {
         return await this.rl.question('Should the bill be split among multiple people? (yes/no)')
     }
 
-    @repeatUserInputUntilValid(numberValidator, 0, 100)
+    @repeatUserInputUntilValid(numberValidator, 2)
     public async getSplitNumber() {
         return await this.rl.question('How many people will split the bill?')
     }
 
+    @repeatUserInputUntilValid(yesNoValidator)
+    public async yesNoQuestion(message: string) {
+        return await this.rl.question(message)
+    }
+
     public async getSplitInfo() {
-        const answer = await this.getSplitBoolean()
-        if (answer === 'yes') {
+        const splitOrNot = (await this.getSplitBoolean()).toLowerCase()
+
+        if (['yes', 'y'].includes(splitOrNot)) {
             const splitBy = await this.getSplitNumber()
             return {
                 split: true,
@@ -111,9 +116,18 @@ class TipCalculator {
     private split: boolean = false
     private splitBy: number = 0
 
-    constructor(private inputHandler: InputHandler) {}
+    constructor(private inputHandler: InputHandler) { }
 
     public async start() {
+        do {
+            await this.makeTheJob()
+        } while (['y', 'yes'].includes(
+            (await this.inputHandler.yesNoQuestion('Want to repeat?')).toLowerCase()
+        ))
+        this.inputHandler.close()
+    }
+
+    private async makeTheJob() {
         this.checkAmount = Number(await this.inputHandler.getCheckAmount())
         this.tipPercentage = Number(await this.inputHandler.getPercentage())
         const { split, splitBy } = await this.inputHandler.getSplitInfo()
@@ -122,7 +136,6 @@ class TipCalculator {
         this.tipAmount = this.calcTipAmount()
         // console.log(this.checkAmount, this.tipPercentage, this.split, this.splitBy)
         this.output()
-        this.inputHandler.close()
     }
 
     private output() {
