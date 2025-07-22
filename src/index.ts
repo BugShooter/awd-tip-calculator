@@ -1,104 +1,93 @@
-import { unwatchFile } from "fs";
-import * as readline from "readline/promises"
-// Your application logic goes here
+import { unwatchFile } from 'fs'
+import * as readline from 'readline/promises'
 
+function numberValidator(userInput: string, min: number, max: number) {
+    const number = parseFloat(userInput)
 
-// Input Collection
-//     The application should ask the user the following questions:
-//         “How high is the check? (e.g., 50.00)”
-//         “What percentage of tip will you give? (e.g., 15 for 15%)”
-//         “Should the bill be split among multnpmiple people? (yes/no)”
-//             If the answer is “yes”, then ask: “How many people will split the bill?”
-// Class-Based Structure:
-//     You must use at least one class (e.g., TipCalculator, Bill, UserInputHandler) to encapsulate the logic and data related to the tip calculation.
-//     Think about how to organize the properties (like check amount, tip percentage, number of people) and methods (like calculate_tip, calculate_total calculate_per_person_cost) within your class(es).
-// Calculations
-//     The application should perform the following calculations and display the results:
-//         Tip Amount: Calculate the total tip amount based on the check and percentage.
-//         Total Bill: Calculate the total amount including the check and the tip.
-//         Amount Per Person (if split): If the bill is split, calculate how much each person needs to pay.
-// Output
-//     Present the results clearly and formatted (e.g., currency symbols, two decimal places for monetary values).
-//     Show the information of Split among people, Split between how many people and Each person pays only if Split among people is true
-// Error Handling (Basic)
-//     Implement basic error handling for user input (e.g., ensure numerical inputs are valid numbers, handle “yes/no” responses appropriately).
-//     Inform the user if their input is invalid and prompt them again.
-//
-// Implement a custom decorator that can be applied to a method within your TipCalculator class (or similar).
-// Refactor your application to use a simple form of dependency injection.
-//     Instead of having a class directly create its dependencies (e.g., an InputReader class), pass them into the constructor.
-//     Example: If you have a TipCalculator class that relies on an InputHandler class to get user input, instead of TipCalculator creating an InputHandler internally, pass an instance of InputHandler to the TipCalculator’s constructor. This makes your code more modular and testable.
-
-function percentageValidator(userInput: string, min: number, max: number) {
-    const percentage = parseFloat(userInput)
-
-    let isValid = !Number.isNaN(percentage) && userInput === String(percentage)
+    let isValid = !Number.isNaN(number) && userInput === String(number)
     if (!isValid) {
-        console.log(`Wrong percentage value "${userInput}"`)
+        console.log(`Wrong number value "${userInput}"`)
     }
-    if (isValid && percentage < 0) {
-        console.log(`Percentage value "${percentage}" can't be lower than zero`)
-        isValid = false;
+    if (isValid && number < 0) {
+        console.log(`number value "${number}" can't be lower than zero`)
+        isValid = false
     }
-    if (isValid && min !== undefined && percentage < min) {
-        console.log(`Percentage value "${percentage}" can't be lower than ${min}`)
-        isValid = false;
+    if (isValid && min !== undefined && number < min) {
+        console.log(`number value "${number}" can't be lower than ${min}`)
+        isValid = false
     }
-    if (isValid && max !== undefined && percentage > max) {
-        console.log(`Percentage value "${percentage}" can't be greater than ${max}`)
-        isValid = false;
+    if (isValid && max !== undefined && number > max) {
+        console.log(`number value "${number}" can't be greater than ${max}`)
+        isValid = false
+    }
+
+    return isValid
+}
+
+function yesNoValidator(userInput: string) {
+    const validAnswers = ['yes', 'no']
+    const isValid = validAnswers.includes(userInput.trim())
+
+    if (!isValid) {
+        console.log(`Wrong input "${userInput}". Please type yes or no.`)
     }
 
     return isValid
 }
 
 function repeatUserInputUntilValid(validator: (...validatorParams: any[]) => boolean, ...validatorParams: any[]) {
-    return function (
-        target: any,
-        propertyKey: string,
-        descriptor: PropertyDescriptor
-    ) {
-        const originalMethod = descriptor.value; // Store the original function
+    return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+        const originalMethod = descriptor.value // Store the original function
 
         descriptor.value = async function (...args: any[]) {
             let result = undefined
             let isValid = false
             do {
-                result = await originalMethod.apply(this, args); // Execute the original function
+                result = await originalMethod.apply(this, args) // Execute the original function
                 // validate a result
                 isValid = validator(result, ...validatorParams)
             } while (!isValid)
             return result
         }
 
-        return descriptor; // Return the modified method
+        return descriptor // Return the modified method
     }
 }
 
-
 class InputHandler {
-    private rl: readline.Interface;
+    private rl: readline.Interface
 
     constructor() {
         this.rl = readline.createInterface({
             input: process.stdin,
-            output: process.stdout,
+            output: process.stdout
         })
     }
 
+    @repeatUserInputUntilValid(numberValidator, 0, 100000)
     public async getCheckAmount() {
-        return this.rl.question("How high is the check? (e.g., 50.00)")
+        return this.rl.question('How high is the check? (e.g., 50.00)')
     }
 
-    @repeatUserInputUntilValid(percentageValidator, 0, 15)
+    @repeatUserInputUntilValid(numberValidator, 0, 100)
     public async getPercentage() {
-        return this.rl.question("What percentage of tip will you give? (e.g., 15 for 15%)")
+        return this.rl.question('What percentage of tip will you give? (e.g., 15 for 15%)')
+    }
+
+    @repeatUserInputUntilValid(yesNoValidator)
+    public async getSplitBoolean() {
+        return await this.rl.question('Should the bill be split among multiple people? (yes/no)')
+    }
+
+    @repeatUserInputUntilValid(numberValidator, 0, 100)
+    public async getSplitNumber() {
+        return await this.rl.question('How many people will split the bill?')
     }
 
     public async getSplitInfo() {
-        const answer = await this.rl.question("Should the bill be split among multiple people? (yes/no)")
-        if (answer === "yes") {
-            const splitBy = await this.rl.question("How many people will split the bill?")
+        const answer = await this.getSplitBoolean()
+        if (answer === 'yes') {
+            const splitBy = await this.getSplitNumber()
             return {
                 split: true,
                 splitBy: Number(splitBy)
@@ -106,7 +95,7 @@ class InputHandler {
         } else {
             return {
                 split: false,
-                splitBy: 0
+                splitBy: 1
             }
         }
     }
@@ -116,16 +105,13 @@ class InputHandler {
 }
 
 class TipCalculator {
-    private checkAmount: number = 0;
-    private tipPercentage: number = 0;
-    private tipAmount: number = 0;
-    private split: boolean = false;
-    private splitBy: number = 0;
+    private checkAmount: number = 0
+    private tipPercentage: number = 0
+    private tipAmount: number = 0
+    private split: boolean = false
+    private splitBy: number = 0
 
-    constructor(
-        private inputHandler: InputHandler,
-    ) {
-    }
+    constructor(private inputHandler: InputHandler) {}
 
     public async start() {
         this.checkAmount = Number(await this.inputHandler.getCheckAmount())
@@ -133,7 +119,7 @@ class TipCalculator {
         const { split, splitBy } = await this.inputHandler.getSplitInfo()
         this.split = split
         this.splitBy = splitBy
-        this.tipAmount = this.calcTipAmount(this.checkAmount, this.tipPercentage)
+        this.tipAmount = this.calcTipAmount()
         // console.log(this.checkAmount, this.tipPercentage, this.split, this.splitBy)
         this.output()
         this.inputHandler.close()
@@ -141,32 +127,32 @@ class TipCalculator {
 
     private output() {
         const message = `--- Tip Calculation Summary ---
-Check Amount: \$${this.checkAmount}
-Tip Percentage: ${this.tipPercentage.toFixed(2)}%
-Tip Amount: \$${this.tipAmount.toFixed(2)}
-Total Bill: \$${this.calcTotalBill(this.checkAmount, this.tipPercentage).toFixed(2)}
-Divide among people: ${this.split ? "yes" : "no"}
-Split between how many people: ${this.splitBy}
-Each person pays: \$${this.calcPerPerson(this.checkAmount, this.splitBy, this.tipPercentage).toFixed(2)}
------------------------------`
+                            Check Amount: \$${this.checkAmount}
+                            Tip Percentage: ${this.tipPercentage.toFixed(2)}%
+                            Tip Amount: \$${this.tipAmount.toFixed(2)}
+                            Total Bill: \$${this.calcTotalBill().toFixed(2)}
+                            Divide among people: ${this.split ? 'yes' : 'no'}
+                            Split between how many people: ${this.splitBy}
+                            Each person pays: \$${this.calcPerPerson().toFixed(2)}
+                            -----------------------------`
         console.log(message)
     }
 
-    calcTipAmount(amount: number, percentage: number) {
-        return amount * (percentage / 100)
+    calcTipAmount() {
+        return this.checkAmount * (this.tipPercentage / 100)
     }
 
-    calcTotalBill(amount: number, percentage: number) {
-        const tip = this.calcTipAmount(amount, percentage)
-        return tip + amount
+    calcTotalBill() {
+        const tip = this.calcTipAmount()
+        return tip + this.checkAmount
     }
 
-    calcPerPerson(amount: number, numberOfPersons: number, percentage: number) {
-        const totalAmount = this.calcTotalBill(amount, percentage)
-        return totalAmount / numberOfPersons
+    calcPerPerson() {
+        const totalAmount = this.calcTotalBill()
+        return totalAmount / this.splitBy
     }
 }
 
-const inputHandler = new InputHandler();
-const calc = new TipCalculator(inputHandler);
-await calc.start();
+const inputHandler = new InputHandler()
+const calc = new TipCalculator(inputHandler)
+await calc.start()
