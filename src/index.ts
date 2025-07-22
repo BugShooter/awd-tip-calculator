@@ -127,14 +127,14 @@ class TipCalculator {
 
     private output() {
         const message = `--- Tip Calculation Summary ---
-                            Check Amount: \$${this.checkAmount}
-                            Tip Percentage: ${this.tipPercentage.toFixed(2)}%
-                            Tip Amount: \$${this.tipAmount.toFixed(2)}
-                            Total Bill: \$${this.calcTotalBill().toFixed(2)}
-                            Divide among people: ${this.split ? 'yes' : 'no'}
-                            Split between how many people: ${this.splitBy}
-                            Each person pays: \$${this.calcPerPerson().toFixed(2)}
-                            -----------------------------`
+Check Amount: \$${this.checkAmount}
+Tip Percentage: ${this.tipPercentage.toFixed(2)}%
+Tip Amount: \$${this.tipAmount.toFixed(2)}
+Total Bill: \$${this.calcTotalBill().toFixed(2)}
+Divide among people: ${this.split ? 'yes' : 'no'}
+Split between how many people: ${this.splitBy}
+Each person pays: \$${this.calcPerPerson().toFixed(2)}
+-----------------------------`
         console.log(message)
     }
 
